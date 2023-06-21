@@ -7,9 +7,8 @@ metadata:
     app: shopapi
 
 spec:
-  
+  type: NodePort
   selector:
     app: shopapi
-
   ports:
   - port: 3000

@@ -20,7 +20,7 @@ spec:
         - containerPort: 3000
         volumeMounts:
         - name: secret-vol
-          mountPath: /app/config/app_secret        
+          mountPath: /app/config/app_secret
         envFrom:
         - configMapRef:
             name: shopapi-cm

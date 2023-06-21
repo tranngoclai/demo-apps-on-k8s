@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 
 metadata:
@@ -10,18 +10,26 @@ spec:
   rules:
   - http:
       paths:
-
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: website
-          servicePort: 80
+          service:
+            name: website
+            port:
+              number: 80
           
       - path: /api/books
+        pathType: Prefix
         backend:
-          serviceName: shopapi
-          servicePort: 3000
+          service:
+            name: shopapi
+            port:
+              number: 3000
 
       - path: /shop
+        pathType: Prefix
         backend:
-          serviceName: shopui
-          servicePort: 80
+          service:
+            name: shopui
+            port:
+              number: 80

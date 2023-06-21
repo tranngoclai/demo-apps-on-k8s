@@ -5,7 +5,7 @@ metadata:
   name: shopapi-cm
 
 data:
-  DB_HOST: bookstore-mysql
+  DB_HOST: mysql
   DB_NAME: bookstore
   DB_USER: appuser
   RAILS_ENV: production

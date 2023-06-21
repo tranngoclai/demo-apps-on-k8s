@@ -29,5 +29,3 @@ spec:
             secretName: shopapi-sec
       restartPolicy: Never
   backoffLimit: 4
-
-
