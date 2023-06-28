@@ -19,12 +19,17 @@ spec:
         ports:
         - containerPort: 3000
         volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /demo
         - name: secret-vol
           mountPath: /app/config/app_secret
         envFrom:
         - configMapRef:
             name: shopapi-cm
       volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
         - name: secret-vol
           secret:
             secretName: shopapi-sec

@@ -1,35 +1,31 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
-
 metadata:
-  name: nginx-ingress
   annotations:
+    cert-manager.io/cluster-issuer: selfsigned-ca-cluster-issuer
     kubernetes.io/ingress.class: nginx
-
+    nginx.ingress.kubernetes.io/proxy-body-size: 500m
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.org/client-max-body-size: 500m
+    nginx.org/mergeable-ingress-type: minion
+    nginx.org/proxy-connect-timeout: 60s
+    nginx.org/proxy-read-timeout: 60s
+  creationTimestamp: "2023-06-30T02:53:00Z"
+  labels:
+    app.kubernetes.io/instance: monitoring
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/version: 1.16.1
+  name: ingress-monitoring
+  namespace: kube-monitoring
 spec:
   rules:
-  - http:
+  - host: monitor.offwork.local.exelab.asia
+    http:
       paths:
-      - path: /
-        pathType: Prefix
-        backend:
+      - backend:
           service:
-            name: website
+            name: grafana
             port:
-              number: 80
-          
-      - path: /api/books
+              number: 8080
+        path: /
         pathType: Prefix
-        backend:
-          service:
-            name: shopapi
-            port:
-              number: 3000
-
-      - path: /shop
-        pathType: Prefix
-        backend:
-          service:
-            name: shopui
-            port:
-              number: 80
