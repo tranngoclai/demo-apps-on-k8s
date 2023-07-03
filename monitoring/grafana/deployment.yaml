@@ -22,11 +22,11 @@ spec:
           containerPort: 3000
         resources:
           limits:
-            memory: "1Gi"
-            cpu: "1000m"
-          requests:
-            memory: 500M
+            memory: "400Mi"
             cpu: "500m"
+          requests:
+            memory: "200Mi"
+            cpu: "250m"
         volumeMounts:
           - mountPath: /var/lib/grafana
             name: grafana-storage
@@ -35,8 +35,9 @@ spec:
             readOnly: false
       volumes:
         - name: grafana-storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: grafana-storage-pv-claim
         - name: grafana-datasources
           configMap:
-              defaultMode: 420
-              name: grafana-datasources
+            defaultMode: 420
+            name: grafana-datasources

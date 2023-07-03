@@ -5,7 +5,6 @@ metadata:
     cert-manager.io/cluster-issuer: selfsigned-ca-cluster-issuer
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/proxy-body-size: 500m
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.org/client-max-body-size: 500m
     nginx.org/mergeable-ingress-type: minion
     nginx.org/proxy-connect-timeout: 60s
@@ -19,7 +18,7 @@ metadata:
   namespace: kube-monitoring
 spec:
   rules:
-  - host: monitor.offwork.local.exelab.asia
+  - host: monitor.local.exelab.asia
     http:
       paths:
       - backend:
@@ -29,3 +28,20 @@ spec:
               number: 8080
         path: /
         pathType: Prefix
+
+  - host: alert.local.exelab.asia
+    http:
+      paths:
+      - backend:
+          service:
+            name: alertmanager
+            port:
+              number: 9093
+        path: /
+        pathType: Prefix
+
+  tls:
+    - hosts:
+        - monitor.local.exelab.asia
+        - alert.local.exelab.asia
+      secretName: monitor-tls
