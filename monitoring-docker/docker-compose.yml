@@ -1,0 +1,54 @@
+version: '3.8'
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+  alertmanager-data: {}
+
+services:
+  prometheus:
+    restart: always
+    build:
+      context: ./prometheus
+      args:
+        MASTER_NODE_HOST: 
+        MASTER_NODE_PORT: 
+    volumes:
+      - ./prometheus/sa:/etc/prometheus/sa
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+
+  alertmanager:
+    build:
+      context: ./alertmanager
+      args:
+        MATTERMOST_HOST: 
+        MATTERMOST_PORT: 
+        TOKEN: 
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager-data:/data
+    command: --config.file=/config/alertmanager.yml --log.level=debug
+
+  grafana:
+    image: grafana/grafana
+    restart: always
+    environment:
+      GF_INSTALL_PLUGINS: 'grafana-clock-panel,grafana-simple-json-datasource'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/config.monitoring
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus

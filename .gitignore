@@ -2,6 +2,7 @@ infra/secret.auto.tfvars
 tmp*
 tmp/*
 temp
+monitoring-docker/prometheus/sa/*
 **/terraform.tfstate
 **/terraform.tfstate*
 **/.terraform

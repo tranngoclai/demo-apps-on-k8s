@@ -1,0 +1,105 @@
+groups:
+  - name: K8s Node Alert
+    rules:
+    - alert: NodeOutOfMemory
+      expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 20) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+      for:
+      labels:
+        severity: warning
+      annotations:
+        summary: Node out of memory (instance {{ $labels.instance }})
+        description: "Node memory is filling up (< 20% left), value: `{{ $value }}`"
+
+    - alert: NodeHighCpuLoad
+      expr: (sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[2m]))) > 0.8) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: Node high CPU load (instance {{ $labels.instance }})
+        description: "CPU load is > 80%, value: `{{ $value }}`"
+
+    - alert: NodeOutOfDiskSpace
+      expr: ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Node out of disk space (instance {{ $labels.instance }})
+        description: "Disk is almost full (< 10% left), value: `{{ $value }}`"
+    
+    - alert: NodeSwapIsFillingUp
+      expr: ((1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100 > 80) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Node swap is filling up (instance {{ $labels.instance }})
+        description: "Swap is filling up (>80%), value: `{{ $value }}`"
+  
+  - name: K8s Container Alert
+    rules:
+    - alert: ContainerKilled
+      expr: time() - container_last_seen > 60
+      for: 0m
+      labels:
+        severity: warning
+      annotations:
+        summary: Container killed (instance {{ $labels.container }})
+        description: "A container has disappeared, value: `{{ $value }}`"
+
+    - alert: ContainerHighCpuUtilization
+      expr: (sum(rate(container_cpu_usage_seconds_total{name!=""}[3m])) BY (instance, name, container) * 100) > 80
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Container High CPU utilization (instance {{ $labels.container }})
+        description: "Container CPU utilization is above 80%, value: `{{ $value }}`"
+
+    - alert: ContainerHighMemoryUsage
+      expr: (sum(container_memory_working_set_bytes{name!=""}) BY (instance, name, container) / sum(container_spec_memory_limit_bytes > 0) BY (instance, name, container) * 100) > 80
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Container High Memory usage (instance {{ $labels.container }})
+        description: "Container Memory usage is above 80%, value: `{{ $value }}`"
+
+    - alert: KubernetesVolumeOutOfDiskSpace
+      expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes * 100 < 10
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes Volume out of disk space (instance {{ $labels.instance }})
+        description: "Volume is almost full (< 10% left), value: `{{ $value }}`"
+
+  - name: K8s Ingress Nginx Alert
+    rules:
+    - alert: NginxHighHttp4xxErrorRate
+      expr: (sum(rate(nginx_ingress_controller_requests{status=~'4..'}[1m])) by (ingress) / sum(rate(nginx_ingress_controller_requests[1m])) by (ingress)) * 100 > 5
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: Nginx high HTTP 4xx error rate (instance {{ $labels.ingress }})
+        description: "Too many HTTP requests with status 4xx (> 5%), value: `{{ $value }}`"
+
+    - alert: NginxHighHttp5xxErrorRate
+      expr: sum(rate(nginx_ingress_controller_requests{status=~'5..'}[1m])) by (ingress,cluster) / sum(rate(nginx_ingress_controller_requests[1m]))by (ingress) * 100 > 5
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: Nginx high HTTP 5xx error rate (instance {{ $labels.instance }})
+        description: "Too many HTTP requests with status 5xx (> 5%), value: `{{ $value }}`"
+
+    - alert: NginxLatencyHigh
+      expr: histogram_quantile(0.95,sum(rate(nginx_ingress_controller_request_duration_seconds_bucket[15m])) by (le,ingress)) > 1.5
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Nginx latency high (instance {{ $labels.ingress }})
+        description: "Nginx p99 latency is higher than 3 seconds, value: `{{ $value }}`"

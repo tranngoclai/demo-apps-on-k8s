@@ -18,7 +18,7 @@ data:
           severity: warning
         annotations:
           summary: Node out of memory (instance {{ $labels.instance }})
-          description: "Node memory is filling up (< 20% left), value: {{ $value }}"
+          description: "Node memory is filling up (< 20% left), value: `{{ $value }}`"
 
       - alert: NodeHighCpuLoad
         expr: (sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[2m]))) > 0.8) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
@@ -27,7 +27,7 @@ data:
           severity: warning
         annotations:
           summary: Node high CPU load (instance {{ $labels.instance }})
-          description: "CPU load is > 80%, value: {{ $value }}"
+          description: "CPU load is > 80%, value: `{{ $value }}`"
 
       - alert: NodeOutOfDiskSpace
         expr: ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
@@ -36,7 +36,7 @@ data:
           severity: warning
         annotations:
           summary: Node out of disk space (instance {{ $labels.instance }})
-          description: "Disk is almost full (< 10% left), value: {{ $value }}"
+          description: "Disk is almost full (< 10% left), value: `{{ $value }}`"
       
       - alert: NodeSwapIsFillingUp
         expr: ((1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100 > 80) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
@@ -45,7 +45,7 @@ data:
           severity: warning
         annotations:
           summary: Node swap is filling up (instance {{ $labels.instance }})
-          description: "Swap is filling up (>80%), value: {{ $value }}"
+          description: "Swap is filling up (>80%), value: `{{ $value }}`"
 
       - alert: ContainerKilled
         expr: time() - container_last_seen > 60
@@ -54,7 +54,7 @@ data:
           severity: warning
         annotations:
           summary: Container killed (instance {{ $labels.container }})
-          description: "A container has disappeared, value: {{ $value }}"
+          description: "A container has disappeared, value: `{{ $value }}`"
 
       - alert: ContainerHighCpuUtilization
         expr: (sum(rate(container_cpu_usage_seconds_total{name!=""}[3m])) BY (instance, name, container) * 100) > 80
@@ -63,7 +63,7 @@ data:
           severity: warning
         annotations:
           summary: Container High CPU utilization (instance {{ $labels.container }})
-          description: "Container CPU utilization is above 80%, value: {{ $value }}"
+          description: "Container CPU utilization is above 80%, value: `{{ $value }}`"
 
       - alert: ContainerHighMemoryUsage
         expr: (sum(container_memory_working_set_bytes{name!=""}) BY (instance, name, container) / sum(container_spec_memory_limit_bytes > 0) BY (instance, name, container) * 100) > 80
@@ -72,7 +72,7 @@ data:
           severity: warning
         annotations:
           summary: Container High Memory usage (instance {{ $labels.container }})
-          description: "Container Memory usage is above 80%, value: {{ $value }}"
+          description: "Container Memory usage is above 80%, value: `{{ $value }}`"
 
       - alert: KubernetesVolumeOutOfDiskSpace
         expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes * 100 < 10
@@ -81,34 +81,35 @@ data:
           severity: warning
         annotations:
           summary: Kubernetes Volume out of disk space (instance {{ $labels.instance }})
-          description: "Volume is almost full (< 10% left), value: {{ $value }}"
+          description: "Volume is almost full (< 10% left), value: `{{ $value }}`"
 
       - alert: NginxHighHttp4xxErrorRate
-        expr: sum(rate(nginx_http_requests_total{status=~"^4.."}[1m])) / sum(rate(nginx_http_requests_total[1m])) * 100 > 5
+        expr: (sum(rate(nginx_ingress_controller_requests{status=~'4..'}[1m])) by (ingress) / sum(rate(nginx_ingress_controller_requests[1m])) by (ingress)) * 100 > 5
         for: 1m
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: Nginx high HTTP 4xx error rate (instance {{ $labels.instance }})
-          description: "Too many HTTP requests with status 4xx (> 5%), value: {{ $value }}
+          summary: Nginx high HTTP 4xx error rate (instance {{ $labels.ingress }})
+          description: "Too many HTTP requests with status 4xx (> 5%), value: `{{ $value }}`"
 
       - alert: NginxHighHttp5xxErrorRate
-        expr: sum(rate(nginx_http_requests_total{status=~"^5.."}[1m])) / sum(rate(nginx_http_requests_total[1m])) * 100 > 5
+        expr: sum(rate(nginx_ingress_controller_requests{status=~'5..'}[1m])) by (ingress,cluster) / sum(rate(nginx_ingress_controller_requests[1m]))by (ingress) * 100 > 5
         for: 1m
         labels:
           severity: critical
         annotations:
           summary: Nginx high HTTP 5xx error rate (instance {{ $labels.instance }})
-          description: "Too many HTTP requests with status 5xx (> 5%), value: {{ $value }}"
+          description: "Too many HTTP requests with status 5xx (> 5%), value: `{{ $value }}`"
 
       - alert: NginxLatencyHigh
-        expr: histogram_quantile(0.99, sum(rate(nginx_http_request_duration_seconds_bucket[2m])) by (host, node, le)) > 3
+        expr: histogram_quantile(0.95,sum(rate(nginx_ingress_controller_request_duration_seconds_bucket[15m])) by (le,ingress)) > 1.5
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: Nginx latency high (instance {{ $labels.instance }})
-          description: "Nginx p99 latency is higher than 3 seconds, value: {{ $value }}"
+          summary: Nginx latency high (instance {{ $labels.ingress }})
+          description: "Nginx p99 latency is higher than 3 seconds, value: `{{ $value }}`"
+
   prometheus.yml: |-
     global:
       scrape_interval: 15s
@@ -143,6 +144,10 @@ data:
       - job_name: "prometheus"
         static_configs:
         - targets: ["localhost:9090"]
+
+      - job_name: "ingress-nginx"
+        static_configs:
+        - targets: ["ingress-nginx-controller.ingress-nginx.svc.cluster.local:10254"]
 
       - job_name: kubernetes-nodes-cadvisor
         scrape_interval: 10s
